@@ -6,70 +6,42 @@ on:
       - main
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '22'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build Docker image
-        run: docker build -t hello-world-nodejs:latest .
-
-      - name: Log in to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-        with:
-          mask-password: true
-          registry-type: private
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-
-      - name: Push Docker image to Amazon ECR
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          IMAGE_REPO_NAME: hello-world-nodejs
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          DOCKER_USERNAME: ${{ steps.login-ecr.outputs.docker_username }}
-          DOCKER_PASSWORD: ${{ steps.login-ecr.outputs.docker_password }}
-        run: |
-          echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin $ECR_REGISTRY
-          docker tag hello-world-nodejs:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
-          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
-
-  deploy:
-    runs-on: ubuntu-22.04
-    needs: build
+  login-to-amazon-ecr:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: arn:aws:iam::123456789012:role/my-github-actions-role
+          aws-region: us-west-2
+          mask-aws-account-id: 'false'
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: 'false'
 
-      - name: Initialize Terraform
-        run: terraform init
-        working-directory: ./terraform
+    # Define outputs to use in subsequent steps
+    outputs:
+      registry: ${{ steps.login-ecr.outputs.registry }}
+      docker_username: ${{ steps.login-ecr.outputs.docker_username_115134429501_dkr_ecr_us_west_2_amazonaws_com }} # Adjust the output name based on actual output
+      docker_password: ${{ steps.login-ecr.outputs.docker_password_115134429501_dkr_ecr_us_west_2_amazonaws_com }} # Adjust the output name based on actual output
 
-      - name: Apply Terraform
-        run: terraform apply -auto-approve
-        working-directory: ./terraform
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    needs: login-to-amazon-ecr
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Use the outputs from the previous job
+      - name: Use ECR credentials from login job
+        run: echo "Registry: ${{ needs.login-to-amazon-ecr.outputs.registry }}"
+
+      # Additional steps for building and deploying can follow here
