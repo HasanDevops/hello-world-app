@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-
 jobs:
   login-to-amazon-ecr:
     runs-on: ubuntu-latest
