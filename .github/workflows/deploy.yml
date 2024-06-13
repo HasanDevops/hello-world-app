@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04  # Specify Ubuntu 22.04
 
     steps:
       - name: Checkout code
@@ -16,19 +16,16 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '22.04'
+          node-version: '22'  # Specify Node.js version 22
 
       - name: Install dependencies
         run: npm install
-        working-directory: ./
 
       - name: Run tests
         run: npm test # If you have tests
-        working-directory: ./
 
       - name: Build Docker image
-        run: docker build -t hello-world-nodejs:22 .
-        working-directory: ./
+        run: docker build -t hello-world-nodejs:latest .
 
       - name: Log in to Amazon ECR
         id: ecr-login
@@ -44,7 +41,8 @@ jobs:
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # Specify Ubuntu 22.04
+
     needs: build
 
     steps:
@@ -68,4 +66,3 @@ jobs:
       - name: Apply Terraform
         run: terraform apply -auto-approve
         working-directory: ./terraform
-
