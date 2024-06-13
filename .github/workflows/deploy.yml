@@ -28,7 +28,7 @@ jobs:
         run: docker build -t hello-world-app .
 
       - name: Log in to Amazon ECR
-        id: 115134429501 
+        id: 
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build, tag, and push image to Amazon ECR
