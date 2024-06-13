@@ -27,7 +27,7 @@ jobs:
         working-directory: ./
 
       - name: Build Docker image
-        run: docker build -t hello-world-nodejs:latest .
+        run: docker build -t hello-world-nodejs:20 .
         working-directory: ./
 
       - name: Log in to Amazon ECR
