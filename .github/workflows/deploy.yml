@@ -1,46 +1,61 @@
-name: CI/CD Pipeline
+name: Deploy to AWS ECR
 
 on:
   push:
     branches:
       - main
+
 jobs:
-  login-to-amazon-ecr:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::123456789012:role/my-github-actions-role
           aws-region: us-west-2
-          mask-aws-account-id: 'false'
+          mask-aws-account-id: false
 
+      # Login to Amazon ECR and capture outputs
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
-          mask-password: 'false'
+          mask-password: false
 
-    # Define outputs to use in subsequent steps
-    outputs:
-      registry: ${{ steps.login-ecr.outputs.registry }}
-      docker_username: ${{ steps.login-ecr.outputs.docker_username_115134429501_dkr_ecr_us_west_2_amazonaws_com }} # Adjust the output name based on actual output
-      docker_password: ${{ steps.login-ecr.outputs.docker_password_115134429501_dkr_ecr_us_west_2_amazonaws_com }} # Adjust the output name based on actual output
+      # Output variables from login to use later
+      - name: Set ECR outputs
+        id: ecr-outputs
+        run: |
+          echo "::set-output name=registry::${{ steps.login-ecr.outputs.registry }}"
+          echo "::set-output name=docker_username::${{ steps.login-ecr.outputs.docker_username_115134429501_dkr_ecr_us_west_2_amazonaws_com }}"
+          echo "::set-output name=docker_password::${{ steps.login-ecr.outputs.docker_password_115134429501_dkr_ecr_us_west_2_amazonaws_com }}"
 
-  build-and-deploy:
+  deploy-to-ecr:
     runs-on: ubuntu-latest
-    needs: login-to-amazon-ecr
+    needs: build-and-push
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Use the outputs from the previous job
-      - name: Use ECR credentials from login job
-        run: echo "Registry: ${{ needs.login-to-amazon-ecr.outputs.registry }}"
+      # Use ECR credentials from login job outputs
+      - name: Use ECR credentials
+        run: |
+          echo "Registry: ${{ needs.build-and-push.outputs.registry }}"
+          echo "Docker username: ${{ needs.build-and-push.outputs.docker_username }}"
+          echo "Docker password: ${{ needs.build-and-push.outputs.docker_password }}"
 
-      # Additional steps for building and deploying can follow here
+      # Additional steps for deploying to ECR can follow here
+      # Example: Push Docker image to ECR using docker CLI or AWS CLI
+
+      # Example step using AWS CLI to push Docker image to ECR
+      - name: Push Docker image to ECR
+        run: |
+          docker tag my-image:latest ${{ needs.build-and-push.outputs.registry }}/my-repo:latest
+          docker push ${{ needs.build-and-push.outputs.registry }}/my-repo:latest
