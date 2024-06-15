@@ -26,16 +26,16 @@ jobs:
       
       - name: Debug AWS Credentials
         run: |
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.AA_KEY_ID }}"
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.SA_KEY }}"
-          echo "AWS_REGION=${{ secrets.A_REGION }}"
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AK }}"
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.SAK }}"
+          echo "AWS_REGION=${{ secrets.AR }}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AA_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.SA_KEY }}
-          aws-region: us-west-2
+          aws-access-key-id: ${{ secrets.AK }}
+          aws-secret-access-key: ${{ secrets.SAK }}
+          aws-region: ${{ secrets.AR }}
           
           
       - name: Login to Amazon ECR
