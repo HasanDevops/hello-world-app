@@ -1,4 +1,4 @@
-name: ECR Login
+name: CD Nodejs Pipeline
 
 on:
   push:
@@ -6,12 +6,23 @@ on:
       - main
 
 jobs:
-  ecr-login:
+  build:
     runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Docker image
+        run: docker build -t hello-world-nodejs:latest .
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
