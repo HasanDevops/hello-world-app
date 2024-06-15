@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-west-2"  # Update with your AWS region
+  region = "us-east-1"  # Update with your AWS region
   access_key = var.aws_access_key_id
   secret_key = var.aws_secret_access_key
   # Other provider configuration options
