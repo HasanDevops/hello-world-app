@@ -31,6 +31,7 @@ jobs:
           mask-password: 'true'
           registry-type: private
           skip-logout: 'false'
+          region: ${{ secrets.A_region }}
 
       - name: Build, tag, and push Docker image to Amazon ECR
         env:
