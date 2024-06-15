@@ -1,5 +1,10 @@
-name: CD Nodejs Pipeline
+on:
+  push:
+    branches:
+      - main
 
+jobs:
+  build:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
