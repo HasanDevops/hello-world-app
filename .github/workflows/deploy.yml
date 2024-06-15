@@ -28,6 +28,9 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
+          aws-access-key-id: ${{ secrets.AA_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.SA_KEY }}
+          aws-region: ${{ secrets.A_region }}
           mask-password: 'true'
 
       - name: Build, tag, and push Docker image to Amazon ECR
