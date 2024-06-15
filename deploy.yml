@@ -1,5 +1,4 @@
 name: CD Nodejs Pipeline
-
 on:
   push:
     branches:
