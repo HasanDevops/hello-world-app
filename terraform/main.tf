@@ -1,8 +1,8 @@
 provider "aws" {
-  region     = "us-east-1"
+  region = "us-west-2"  # Update with your AWS region
   access_key = var.aws_access_key_id
   secret_key = var.aws_secret_access_key
-  # other provider configuration options
+  # Other provider configuration options
 }
 
 resource "aws_vpc" "main" {
