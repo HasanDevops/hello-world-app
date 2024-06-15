@@ -1,5 +1,8 @@
 provider "aws" {
-  region     = "us-east-1"
+  region = "your-region"
+  access_key = var.aws_access_key_id
+  secret_key = var.aws_secret_access_key
+  # other provider configuration options
 }
 
 resource "aws_vpc" "main" {
