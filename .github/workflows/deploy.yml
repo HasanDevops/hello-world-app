@@ -1,5 +1,4 @@
-yaml
-      - name: CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -27,26 +26,18 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
         with:
-          mask-password: 'true'jobs:
-        login-to-amazon-ecr:
-        
-        steps:
-          - name: Configure AWS credentials
-            uses: aws-actions/configure-aws-credentials@v4
-            with:
-            aws-region: us-west-2
-            mask-aws-account-id: 'false'
-          - name: Login to Amazon ECR
-            id: login-ecr
-            uses: aws-actions/amazon-ecr-login@v2
-            with:
-            mask-password: 'false'
-        outputs:
-          registry: ${{ steps.login-ecr.outputs.registry }}
-          docker_username: ${{ steps.login-ecr.outputs.docker_115134429501.dkr.ecr.us-west-2.amazonaws.com/hello-world-nodejs }} # More information on these outputs can be found below in the 'Docker Credentials' section
-          docker_password: ${{ steps.login-ecr.outputs.docker_password_115134429501.dkr.ecr.us-west-2.amazonaws.com/hello-world-nodejs }}
+          mask-password: 'false'
+
+      - name: Build, tag, and push Docker image to Amazon ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: hello-world-nodejs
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker tag hello-world-nodejs:latest ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
 
   deploy:
     runs-on: ubuntu-22.04
