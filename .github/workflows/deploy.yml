@@ -1,3 +1,19 @@
+
+    name: Terraform
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    
     - name: Debug Environment Variables
       run: |
         echo "AWS_ACCESS_KEY_ID is set"
