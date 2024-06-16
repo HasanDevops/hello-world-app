@@ -39,10 +39,11 @@ jobs:
         id: build_docker
         run: |
           docker build -t $ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG .
-          echo "docker_image_uri=$ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG" > image_uri.env
+          echo "docker_image_uri=$ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG" >> $GITHUB_ENV
 
-      - name: Save Docker image URI
-        run: echo "DOCKER_IMAGE_URI=$(cat image_uri.env)" >> $GITHUB_ENV
+      - name: Push Docker image to Amazon ECR
+        id: push_docker
+        run: docker push $ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG
 
   deploy:
     runs-on: ubuntu-latest
@@ -79,17 +80,13 @@ jobs:
         working-directory: ./terraform
         run: terraform validate
 
-      - name: Prepare Terraform Environment Variables
-        run: |
-          echo "TF_VAR_aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-          echo "TF_VAR_aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          echo "TF_VAR_aws_region=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
-          echo "$(cat $GITHUB_ENV)" >> ./terraform/environment.auto.tfvars
-
       - name: Terraform Apply
         id: apply_terraform
         working-directory: ./terraform
         run: |
           terraform apply \
             -auto-approve \
-            -parallelism=10
+            -parallelism=10 \
+            -var "aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            -var "aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            -var "aws_region=${{ secrets.AWS_REGION }}"
