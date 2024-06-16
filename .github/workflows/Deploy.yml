@@ -39,11 +39,10 @@ jobs:
         id: build_docker
         run: |
           docker build -t $ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG .
-          echo "docker_image_uri=$ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG" >> $GITHUB_ENV
           echo "docker_image_uri=$ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG" > image_uri.env
 
       - name: Save Docker image URI
-        run: echo "::set-env name=DOCKER_IMAGE_URI::$(cat image_uri.env)"
+        run: echo "DOCKER_IMAGE_URI=$(cat image_uri.env)" >> $GITHUB_ENV
 
   deploy:
     runs-on: ubuntu-latest
@@ -85,7 +84,7 @@ jobs:
           echo "TF_VAR_aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           echo "TF_VAR_aws_region=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
-          echo "TF_VAR_docker_image_uri=${{ env.DOCKER_IMAGE_URI }}" >> $GITHUB_ENV
+          echo "$(cat $GITHUB_ENV)" >> ./terraform/environment.auto.tfvars
 
       - name: Terraform Apply
         id: apply_terraform
