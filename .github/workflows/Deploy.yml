@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Terraform Validation
 
 on:
   push:
@@ -6,53 +6,11 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  terraform-validate:
     runs-on: ubuntu-latest
-
-    env:
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      REPOSITORY_NAME: hello-world-nodejs
-      IMAGE_TAG: ${{ github.sha }}
-      ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Create ECR repository if it doesn't exist
-        run: |
-          aws ecr describe-repositories --repository-names $REPOSITORY_NAME || \
-          aws ecr create-repository --repository-name $REPOSITORY_NAME
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Verify ECR login
-        run: echo "Login to ECR succeeded"
-
-      - name: Build Docker image
-        run: |
-          docker build -t $ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG .
-          docker images
-
-      - name: Push Docker image to Amazon ECR
-        run: |
-          docker push $ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG
-
-  deploy:
-    runs-on: ubuntu-22.04
-    needs: build-and-deploy
-
-    steps:
-      - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Configure AWS credentials
@@ -73,12 +31,9 @@ jobs:
           fi
 
       - name: Initialize Terraform
+        working-directory: ./terraform
         run: terraform init
-        working-directory: ./terraform
 
-      - name: Terraform Apply
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: terraform apply -auto-approve
+      - name: Validate Terraform
         working-directory: ./terraform
+        run: terraform validate
