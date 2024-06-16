@@ -73,7 +73,7 @@ jobs:
       - name: Initialize Terraform
         id: init_terraform
         working-directory: ./terraform
-        run: terraform init -input=false
+        run: terraform init
 
       - name: Validate Terraform
         id: validate_terraform
@@ -86,7 +86,9 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: terraform apply -input=false -auto-approve -parallelism=10
+        run: terraform apply -auto-approve -parallelism=10 \
+          -var "aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" \
+          -var "aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
 
       - name: Save Terraform state
         run: echo "terraform_state=${{ steps.apply_terraform.outputs.state }}" >> $GITHUB_ENV
