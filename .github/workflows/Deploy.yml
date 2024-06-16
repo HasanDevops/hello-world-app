@@ -76,6 +76,10 @@ jobs:
         working-directory: ./terraform
         run: terraform validate
 
+      - name: Plan Terraform
+        working-directory: ./terraform
+        run: terraform plan
+
       - name: Terraform Apply
         working-directory: ./terraform
         run: terraform apply -auto-approve
