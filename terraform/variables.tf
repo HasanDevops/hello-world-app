@@ -9,3 +9,8 @@ variable "aws_secret_access_key" {
   type        = string
   sensitive   = true
 }
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+}
+
