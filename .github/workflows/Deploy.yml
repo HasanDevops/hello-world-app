@@ -67,18 +67,18 @@ jobs:
 
       - name: Verify Terraform Directory
         run: |
-          if [ ! -d "./path/to/terraform/files" ]; then
+          if [ ! -d "./terraform" ]; then
             echo "Terraform directory does not exist"
             exit 1
           fi
 
       - name: Initialize Terraform
         run: terraform init
-        working-directory: ./path/to/terraform/files
+        working-directory: ./terraform
 
       - name: Terraform Apply
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform apply -auto-approve
-        working-directory: ./path/to/terraform/files  # Update this path to the correct directory
+        working-directory: ./terraform
