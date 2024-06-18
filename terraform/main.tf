@@ -66,7 +66,7 @@ resource "aws_ecs_cluster" "main" {
   name = "hello-world-cluster"
 }
 
-resource "aws_ecs_task_definition" "hello_worlds" {
+resource "aws_ecs_task_definition" "hello_world" {
   family                   = "hello-world-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
