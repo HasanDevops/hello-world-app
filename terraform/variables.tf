@@ -1,16 +1,19 @@
 variable "aws_access_key_id" {
-  description = "AWS access key"
+  description = "AWS Access Key ID"
   type        = string
-  sensitive   = true
 }
 
 variable "aws_secret_access_key" {
-  description = "AWS secret key"
-  type        = string
-  sensitive   = true
-}
-variable "aws_region" {
-  description = "AWS region"
+  description = "AWS Secret Access Key"
   type        = string
 }
 
+variable "aws_region" {
+  description = "AWS Region"
+  type        = string
+}
+
+variable "ecr_image_uri" {
+  description = "URI of the Docker image in ECR"
+  type        = string
+}
