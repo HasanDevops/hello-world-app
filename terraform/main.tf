@@ -1,107 +1,95 @@
-provider "aws" {
-  region = var.aws_region
-}
+name: CI/CD Pipeline
 
-variable "aws_access_key_id" {
-  description = "AWS Access Key ID"
-  type        = string
-}
+on:
+  push:
+    branches:
+      - main
 
-variable "aws_secret_access_key" {
-  description = "AWS Secret Access Key"
-  type        = string
-}
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      REPOSITORY_NAME: hello-world-nodejs
+      IMAGE_TAG: ${{ github.sha }}
+      ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
-variable "aws_region" {
-  description = "AWS Region"
-  type        = string
-}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-variable "ecr_image_url" {
-  description = "URL of the Docker image in ECR"
-  type        = string
-}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+      - name: Create ECR repository if it doesn't exist
+        run: |
+          aws ecr describe-repositories --repository-names $REPOSITORY_NAME || \
+          aws ecr create-repository --repository-name $REPOSITORY_NAME
 
-  tags = {
-    Name = "main-vpc"
-  }
-}
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
-resource "aws_subnet" "subnet" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-east-1a"
+      - name: Build Docker image
+        id: build_docker
+        run: |
+          docker build -t $ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG .
+          echo "docker_image_uri=$ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG" >> $GITHUB_ENV
 
-  tags = {
-    Name = "main-subnet"
-  }
-}
+      - name: Push Docker image to Amazon ECR
+        id: push_docker
+        run: docker push $ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG
 
-resource "aws_security_group" "ecs_sg" {
-  vpc_id = aws_vpc.main.id
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-  ingress {
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
 
-  tags = {
-    Name = "ecs-sg"
-  }
-}
+      - name: Verify Terraform Directory
+        run: |
+          if [ ! -d "./terraform" ]; then
+            echo "Terraform directory does not exist"
+            exit 1
+          fi
 
-resource "aws_ecs_cluster" "main" {
-  name = "hello-world-cluster"
-}
+      - name: Initialize Terraform
+        id: init_terraform
+        working-directory: ./terraform
+        run: terraform init
 
-resource "aws_ecs_task_definition" "hello_world" {
-  family                   = "hello-world-task"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"
-  memory                   = "512"
+      - name: Validate Terraform
+        id: validate_terraform
+        working-directory: ./terraform
+        run: terraform validate
 
-  container_definitions = jsonencode([
-    {
-      name      = "hello-world"
-      image     = var.ecr_image_url
-      essential = true
-      portMappings = [
-        {
-          containerPort = 3000
-          hostPort      = 3000
-        }
-      ]
-    }
-  ])
-}
-
-resource "aws_ecs_service" "hello_world" {
-  name            = "hello-world-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.hello_world.arn
-  launch_type     = "FARGATE"
-
-  network_configuration {
-    subnets         = [aws_subnet.subnet.id]
-    security_groups = [aws_security_group.ecs_sg.id]
-  }
-
-  desired_count = 1
-
-  tags = {
-    Name = "hello-world-service"
-  }
-}
+      - name: Terraform Apply
+        id: apply_terraform
+        working-directory: ./terraform
+        env:
+          ECR_IMAGE_URL: ${{ env.docker_image_uri }}
+        run: |
+          terraform apply \
+            -auto-approve \
+            -parallelism=10 \
+            -var "aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            -var "aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            -var "aws_region=${{ secrets.AWS_REGION }}" \
+            -var "ecr_image_url=${{ env.ECR_IMAGE_URL }}"
