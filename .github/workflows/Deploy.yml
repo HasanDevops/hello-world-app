@@ -48,6 +48,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build-and-deploy
+    env:
+      ECR_IMAGE_URL: ${{ needs.build-and-deploy.outputs.docker_image_uri }}
     
     steps:
       - name: Checkout code
